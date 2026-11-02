@@ -27,6 +27,7 @@ import {
   BarChart3,
   Users,
   BookOpen,
+  Heart,
 } from "lucide-react";
 
 export function Navbar() {
@@ -42,6 +43,8 @@ export function Navbar() {
     { href: "/kds/bar", label: t("kdsBar"), icon: Sparkles },
     { href: "/kds/kitchen", label: t("kdsKitchen"), icon: ChefHat },
     { href: "/cash-drawer", label: t("cashDrawer"), icon: Receipt },
+    { href: "/customers", label: "Loyalty", icon: Heart },
+    { href: "/menu-engineering", label: "Menu Matrix", icon: Sparkles },
     { href: "/inventory", label: t("inventory"), icon: SlidersHorizontal },
     { href: "/purchasing", label: t("purchasing"), icon: ShoppingBag },
     { href: "/expenses", label: "Expenses", icon: DollarSign },

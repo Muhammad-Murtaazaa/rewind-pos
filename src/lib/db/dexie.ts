@@ -37,6 +37,17 @@ import {
   type AccountDef,
   type JournalEntryDef,
 } from "../data/sample-hr-accounting";
+import {
+  SAMPLE_CUSTOMERS,
+  SAMPLE_GIFT_CARDS,
+  SAMPLE_PROMO_CODES,
+  SAMPLE_FEEDBACK,
+  type CustomerDef,
+  type GiftCardDef,
+  type PromoCodeDef,
+  type CustomerFeedbackDef,
+  type CampaignDef,
+} from "../data/sample-growth";
 
 export interface LocalOrder {
   id: string; // client UUIDv7
@@ -157,7 +168,7 @@ export interface LocalStockMovement {
 
 export interface OutboxRecord {
   id: string;
-  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED" | "PAYROLL_POSTED";
+  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED" | "PAYROLL_POSTED" | "FEEDBACK_SUBMITTED";
   payload: any;
   retry_count: number;
   created_at: string;
@@ -206,10 +217,16 @@ class RewindDatabase extends Dexie {
   accounts!: DexieTable<AccountDef, string>;
   journalEntries!: DexieTable<JournalEntryDef, string>;
 
+  // Phase 4: Growth, Loyalty & Customer Tables
+  customers!: DexieTable<CustomerDef, string>;
+  giftCards!: DexieTable<GiftCardDef, string>;
+  promoCodes!: DexieTable<PromoCodeDef, string>;
+  customerFeedback!: DexieTable<CustomerFeedbackDef, string>;
+
   constructor() {
     super("RewindCafePOS");
 
-    this.version(3).stores({
+    this.version(4).stores({
       items: "id, category_id, name_en, station_type, is_favourite, is_available",
       categories: "id, slug, sort_order",
       modifierGroups: "id",
@@ -240,6 +257,12 @@ class RewindDatabase extends Dexie {
       payslips: "id, payroll_run_id, user_id",
       accounts: "code, type",
       journalEntries: "id, entry_date, reference_no",
+
+      // Phase 4 stores
+      customers: "id, phone, name, tier",
+      giftCards: "id, code, is_active",
+      promoCodes: "id, code, is_active",
+      customerFeedback: "id, order_id, rating",
     });
   }
 
@@ -278,6 +301,14 @@ class RewindDatabase extends Dexie {
       await this.attendance.bulkAdd(SAMPLE_ATTENDANCE);
       await this.shiftSchedules.bulkAdd(SAMPLE_SHIFTS);
       await this.accounts.bulkAdd(DEFAULT_CHART_OF_ACCOUNTS);
+    }
+
+    const custCount = await this.customers.count();
+    if (custCount === 0) {
+      await this.customers.bulkAdd(SAMPLE_CUSTOMERS);
+      await this.giftCards.bulkAdd(SAMPLE_GIFT_CARDS);
+      await this.promoCodes.bulkAdd(SAMPLE_PROMO_CODES);
+      await this.customerFeedback.bulkAdd(SAMPLE_FEEDBACK);
     }
   }
 }
