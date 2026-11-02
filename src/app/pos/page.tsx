@@ -124,7 +124,7 @@ export default function PosPage() {
   const totalCartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-61px)] overflow-hidden">
+    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden">
       {/* LEFT COLUMN: Menu, Categories, Item Tiles */}
       <div className="flex-1 flex flex-col overflow-hidden bg-cream-100/60 dark:bg-espresso-950/40">
         {/* Top Controls: Search & Category Navigation */}

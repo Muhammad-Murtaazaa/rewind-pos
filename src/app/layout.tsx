@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
+import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
   title: "Rewind Café — Point of Sale & Management",
@@ -27,9 +27,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen flex flex-col transition-colors selection:bg-vintage-orange selection:text-white">
-        <Navbar />
-        <main className="flex-1 flex flex-col">{children}</main>
+      <body className="min-h-screen font-sans antialiased selection:bg-vintage-orange selection:text-white">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

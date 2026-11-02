@@ -5,10 +5,15 @@ interface UiState {
   isRtl: boolean;
   theme: "light" | "dark";
   soundEnabled: boolean;
+  sidebarCollapsed: boolean;
+  mobileMenuOpen: boolean;
   setLanguage: (lang: "en" | "ur") => void;
   toggleTheme: () => void;
   setTheme: (theme: "light" | "dark") => void;
   toggleSound: () => void;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setMobileMenuOpen: (open: boolean) => void;
   playSound: (type: "bell" | "chime" | "click") => void;
 }
 
@@ -17,6 +22,12 @@ export const useUiStore = create<UiState>((set, get) => ({
   isRtl: false,
   theme: "light",
   soundEnabled: true,
+  sidebarCollapsed: false,
+  mobileMenuOpen: false,
+
+  toggleSidebar: () => set({ sidebarCollapsed: !get().sidebarCollapsed }),
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
 
   setLanguage: (lang) => {
     set({
