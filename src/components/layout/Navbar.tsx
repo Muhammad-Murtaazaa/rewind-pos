@@ -21,6 +21,10 @@ import {
   Sparkles,
   Lock,
   Compass,
+  SlidersHorizontal,
+  ShoppingBag,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
 
 export function Navbar() {
@@ -36,6 +40,10 @@ export function Navbar() {
     { href: "/kds/bar", label: t("kdsBar"), icon: Sparkles },
     { href: "/kds/kitchen", label: t("kdsKitchen"), icon: ChefHat },
     { href: "/cash-drawer", label: t("cashDrawer"), icon: Receipt },
+    { href: "/inventory", label: t("inventory"), icon: SlidersHorizontal },
+    { href: "/purchasing", label: t("purchasing"), icon: ShoppingBag },
+    { href: "/expenses", label: "Expenses", icon: DollarSign },
+    { href: "/reports", label: "Reports", icon: BarChart3 },
     { href: "/dashboard", label: t("dashboard"), icon: TrendingUp },
   ];
 

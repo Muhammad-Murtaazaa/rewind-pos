@@ -392,6 +392,14 @@ export const useCartStore = create<CartState>((set, get) => ({
     // 4. Enqueue to offline Outbox queue
     await syncEngine.enqueue("ORDER_CREATED", localOrder);
 
+    // 4b. Auto-deduct inventory via recipe bill of materials (FIFO / weighted average)
+    try {
+      const { deduceInventoryForOrder } = await import("@/lib/inventory/recipe-deducer");
+      await deduceInventoryForOrder(localOrder);
+    } catch (invErr) {
+      console.warn("Inventory deduction warning:", invErr);
+    }
+
     // 5. Clear cart
     state.clearCart();
 

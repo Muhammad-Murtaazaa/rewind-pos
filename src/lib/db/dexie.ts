@@ -9,6 +9,21 @@ import {
   type MenuItemDef,
   type ModifierGroupDef,
 } from "../data/sample-menu";
+import {
+  SAMPLE_STOCK_ITEMS,
+  SAMPLE_RECIPES,
+  SAMPLE_VENDORS,
+  SAMPLE_PURCHASE_ORDERS,
+  SAMPLE_EXPENSES,
+  type StockItemDef,
+  type RecipeDef,
+  type VendorDef,
+  type PurchaseOrderDef,
+  type GoodsReceiptDef,
+  type VendorBillDef,
+  type ExpenseDef,
+  type WastageDef,
+} from "../data/sample-inventory";
 
 export interface LocalOrder {
   id: string; // client UUIDv7
@@ -117,9 +132,19 @@ export interface LocalTable {
   waiter_name?: string;
 }
 
+export interface LocalStockMovement {
+  id: string;
+  stock_item_id: string;
+  movement_type: "SALE_DEDUCTION" | "PURCHASE_RECEIPT" | "WASTAGE" | "COUNT_ADJUSTMENT";
+  quantity: number; // negative for deduction, positive for receipt
+  cost_value: number;
+  reference_id?: string;
+  created_at: string;
+}
+
 export interface OutboxRecord {
   id: string; // client UUID
-  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN";
+  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED";
   payload: any;
   retry_count: number;
   created_at: string;
@@ -148,10 +173,21 @@ class RewindDatabase extends Dexie {
   outbox!: DexieTable<OutboxRecord, string>;
   staff!: DexieTable<LocalStaff, string>;
 
+  // Phase 2: Back Office Tables
+  stockItems!: DexieTable<StockItemDef, string>;
+  recipes!: DexieTable<RecipeDef, string>;
+  stockMovements!: DexieTable<LocalStockMovement, string>;
+  vendors!: DexieTable<VendorDef, string>;
+  purchaseOrders!: DexieTable<PurchaseOrderDef, string>;
+  goodsReceipts!: DexieTable<GoodsReceiptDef, string>;
+  vendorBills!: DexieTable<VendorBillDef, string>;
+  expenses!: DexieTable<ExpenseDef, string>;
+  wastageRecords!: DexieTable<WastageDef, string>;
+
   constructor() {
     super("RewindCafePOS");
 
-    this.version(1).stores({
+    this.version(2).stores({
       items: "id, category_id, name_en, station_type, is_favourite, is_available",
       categories: "id, slug, sort_order",
       modifierGroups: "id",
@@ -162,6 +198,17 @@ class RewindDatabase extends Dexie {
       diningTables: "id, table_number, area, is_occupied",
       outbox: "id, event_type, status, created_at",
       staff: "id, role, pin",
+
+      // Phase 2 stores
+      stockItems: "id, name, category, current_qty",
+      recipes: "id, item_id",
+      stockMovements: "id, stock_item_id, movement_type, created_at",
+      vendors: "id, name",
+      purchaseOrders: "id, po_number, vendor_id, status, created_at",
+      goodsReceipts: "id, grn_number, created_at",
+      vendorBills: "id, vendor_id, is_paid",
+      expenses: "id, category, paid_by, created_at",
+      wastageRecords: "id, stock_item_id, reason, created_at",
     });
   }
 
@@ -184,6 +231,15 @@ class RewindDatabase extends Dexie {
         opened_at: new Date().toISOString(),
         notes: "Morning shift float",
       });
+    }
+
+    const stockCount = await this.stockItems.count();
+    if (stockCount === 0) {
+      await this.stockItems.bulkAdd(SAMPLE_STOCK_ITEMS);
+      await this.recipes.bulkAdd(SAMPLE_RECIPES);
+      await this.vendors.bulkAdd(SAMPLE_VENDORS);
+      await this.purchaseOrders.bulkAdd(SAMPLE_PURCHASE_ORDERS);
+      await this.expenses.bulkAdd(SAMPLE_EXPENSES);
     }
   }
 }
