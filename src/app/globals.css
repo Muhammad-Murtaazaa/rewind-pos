@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 38 40% 94%; /* Cream #F7F1E8 */
+    --foreground: 20 28% 13%; /* Espresso #2B1E18 */
+  }
+
+  .dark {
+    --background: 20 20% 10%; /* Espresso #1E1714 */
+    --foreground: 35 44% 91%; /* Cream #F3EADF */
+  }
+
+  body {
+    background-color: #F7F1E8;
+    color: #2B1E18;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .dark body {
+    background-color: #1E1714;
+    color: #F3EADF;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+  }
+}
+
+/* Custom Scrollbar in Rewind retro café aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(43, 30, 24, 0.15);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(243, 234, 223, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(224, 122, 63, 0.6);
+}
+
+/* Print styles for ESC/POS 80mm thermal receipts */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #thermal-receipt, #thermal-receipt * {
+    visibility: visible;
+  }
+  #thermal-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+  }
+}

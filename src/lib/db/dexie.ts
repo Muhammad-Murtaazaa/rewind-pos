@@ -1,0 +1,196 @@
+import Dexie, { type Table as DexieTable } from "dexie";
+import {
+  SAMPLE_CATEGORIES,
+  SAMPLE_MENU_ITEMS,
+  SAMPLE_MODIFIER_GROUPS,
+  SAMPLE_STAFF,
+  SAMPLE_TABLES,
+  type CategoryDef,
+  type MenuItemDef,
+  type ModifierGroupDef,
+} from "../data/sample-menu";
+
+export interface LocalOrder {
+  id: string; // client UUIDv7
+  order_number: string;
+  order_type: "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+  status: "PENDING" | "CONFIRMED" | "PREPARING" | "READY" | "SERVED" | "COMPLETED" | "VOIDED";
+  table_id?: string;
+  table_number?: string;
+  cashier_id: string;
+  cashier_name: string;
+  customer_name?: string;
+  customer_phone?: string;
+  items: LocalOrderItem[];
+  subtotal: number;
+  discount_amount: number;
+  discount_reason?: string;
+  tax_amount: number;
+  service_charge: number;
+  total_amount: number;
+  notes?: string;
+  payment_method?: string;
+  amount_tendered?: number;
+  change_returned?: number;
+  sync_status: "PENDING" | "SYNCED" | "FAILED";
+  created_at: string;
+  updated_at: string;
+  held_at?: string;
+}
+
+export interface LocalOrderItem {
+  id: string;
+  item_id: string;
+  item_name: string;
+  variant_name?: string;
+  unit_price: number;
+  quantity: number;
+  total_price: number;
+  discount_amount: number;
+  notes?: string;
+  station_type: "BAR" | "KITCHEN";
+  selected_modifiers: {
+    modifier_id: string;
+    modifier_name: string;
+    price_add: number;
+  }[];
+}
+
+export interface LocalKDSTicket {
+  id: string;
+  order_id: string;
+  order_number: string;
+  order_type: "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+  table_label?: string;
+  station_type: "BAR" | "KITCHEN";
+  status: "PENDING" | "PREPARING" | "READY" | "SERVED";
+  items: {
+    id: string;
+    item_name: string;
+    variant_name?: string;
+    quantity: number;
+    notes?: string;
+    modifiers: string[];
+    status: "PENDING" | "PREPARING" | "READY";
+  }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LocalCashSession {
+  id: string;
+  user_id: string;
+  user_name: string;
+  opening_float: number;
+  closing_float?: number;
+  expected_cash?: number;
+  variance?: number;
+  status: "OPEN" | "CLOSED";
+  notes?: string;
+  opened_at: string;
+  closed_at?: string;
+  denominations?: Record<string, number>;
+}
+
+export interface LocalCashMovement {
+  id: string;
+  session_id: string;
+  movement_type: "PAY_IN" | "PAY_OUT";
+  amount: number;
+  reason: string;
+  created_at: string;
+  recorded_by: string;
+}
+
+export interface LocalTable {
+  id: string;
+  table_number: string;
+  area: string;
+  capacity: number;
+  pos_x: number;
+  pos_y: number;
+  shape: string;
+  is_occupied: boolean;
+  occupied_minutes?: number;
+  order_total?: number;
+  current_order_id?: string;
+  waiter_name?: string;
+}
+
+export interface OutboxRecord {
+  id: string; // client UUID
+  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN";
+  payload: any;
+  retry_count: number;
+  created_at: string;
+  status: "PENDING" | "SYNCED" | "FAILED";
+  error_message?: string;
+}
+
+export interface LocalStaff {
+  id: string;
+  name: string;
+  role: string;
+  pin: string;
+  email?: string;
+  avatar?: string;
+}
+
+class RewindDatabase extends Dexie {
+  items!: DexieTable<MenuItemDef, string>;
+  categories!: DexieTable<CategoryDef, string>;
+  modifierGroups!: DexieTable<ModifierGroupDef, string>;
+  orders!: DexieTable<LocalOrder, string>;
+  kdsTickets!: DexieTable<LocalKDSTicket, string>;
+  cashSessions!: DexieTable<LocalCashSession, string>;
+  cashMovements!: DexieTable<LocalCashMovement, string>;
+  diningTables!: DexieTable<LocalTable, string>;
+  outbox!: DexieTable<OutboxRecord, string>;
+  staff!: DexieTable<LocalStaff, string>;
+
+  constructor() {
+    super("RewindCafePOS");
+
+    this.version(1).stores({
+      items: "id, category_id, name_en, station_type, is_favourite, is_available",
+      categories: "id, slug, sort_order",
+      modifierGroups: "id",
+      orders: "id, order_number, order_type, status, table_id, cashier_id, sync_status, created_at, held_at",
+      kdsTickets: "id, order_id, station_type, status, created_at",
+      cashSessions: "id, user_id, status, opened_at",
+      cashMovements: "id, session_id, movement_type, created_at",
+      diningTables: "id, table_number, area, is_occupied",
+      outbox: "id, event_type, status, created_at",
+      staff: "id, role, pin",
+    });
+  }
+
+  async seedDefaultsIfEmpty() {
+    const itemsCount = await this.items.count();
+    if (itemsCount === 0) {
+      await this.categories.bulkAdd(SAMPLE_CATEGORIES);
+      await this.modifierGroups.bulkAdd(SAMPLE_MODIFIER_GROUPS);
+      await this.items.bulkAdd(SAMPLE_MENU_ITEMS);
+      await this.diningTables.bulkAdd(SAMPLE_TABLES as LocalTable[]);
+      await this.staff.bulkAdd(SAMPLE_STAFF);
+
+      // Add one default active cash session
+      await this.cashSessions.add({
+        id: "sess-default-1",
+        user_id: "user-3",
+        user_name: "Ali Raza (Cashier)",
+        opening_float: 5000,
+        status: "OPEN",
+        opened_at: new Date().toISOString(),
+        notes: "Morning shift float",
+      });
+    }
+  }
+}
+
+export const db = new RewindDatabase();
+
+// Run client-side seeding
+if (typeof window !== "undefined") {
+  db.seedDefaultsIfEmpty().catch((err) => console.error("Dexie seed error:", err));
+}

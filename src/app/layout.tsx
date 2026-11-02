@@ -1,0 +1,36 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+import { Navbar } from "@/components/layout/Navbar";
+
+export const metadata: Metadata = {
+  title: "Rewind Café — Point of Sale & Management",
+  description: "Web-based, offline-first POS and café management system for Rewind Café",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#E07A3F",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen flex flex-col transition-colors selection:bg-vintage-orange selection:text-white">
+        <Navbar />
+        <main className="flex-1 flex flex-col">{children}</main>
+      </body>
+    </html>
+  );
+}
