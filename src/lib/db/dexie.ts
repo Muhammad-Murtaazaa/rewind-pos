@@ -24,6 +24,19 @@ import {
   type ExpenseDef,
   type WastageDef,
 } from "../data/sample-inventory";
+import {
+  SAMPLE_STAFF_PROFILES,
+  SAMPLE_ATTENDANCE,
+  SAMPLE_SHIFTS,
+  DEFAULT_CHART_OF_ACCOUNTS,
+  type StaffProfileDef,
+  type AttendanceRecordDef,
+  type ShiftScheduleDef,
+  type LeaveRequestDef,
+  type PayslipDef,
+  type AccountDef,
+  type JournalEntryDef,
+} from "../data/sample-hr-accounting";
 
 export interface LocalOrder {
   id: string; // client UUIDv7
@@ -136,15 +149,15 @@ export interface LocalStockMovement {
   id: string;
   stock_item_id: string;
   movement_type: "SALE_DEDUCTION" | "PURCHASE_RECEIPT" | "WASTAGE" | "COUNT_ADJUSTMENT";
-  quantity: number; // negative for deduction, positive for receipt
+  quantity: number;
   cost_value: number;
   reference_id?: string;
   created_at: string;
 }
 
 export interface OutboxRecord {
-  id: string; // client UUID
-  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED";
+  id: string;
+  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED" | "PAYROLL_POSTED";
   payload: any;
   retry_count: number;
   created_at: string;
@@ -184,10 +197,19 @@ class RewindDatabase extends Dexie {
   expenses!: DexieTable<ExpenseDef, string>;
   wastageRecords!: DexieTable<WastageDef, string>;
 
+  // Phase 3: People & Money Tables
+  staffProfiles!: DexieTable<StaffProfileDef, string>;
+  attendance!: DexieTable<AttendanceRecordDef, string>;
+  shiftSchedules!: DexieTable<ShiftScheduleDef, string>;
+  leaveRequests!: DexieTable<LeaveRequestDef, string>;
+  payslips!: DexieTable<PayslipDef, string>;
+  accounts!: DexieTable<AccountDef, string>;
+  journalEntries!: DexieTable<JournalEntryDef, string>;
+
   constructor() {
     super("RewindCafePOS");
 
-    this.version(2).stores({
+    this.version(3).stores({
       items: "id, category_id, name_en, station_type, is_favourite, is_available",
       categories: "id, slug, sort_order",
       modifierGroups: "id",
@@ -209,6 +231,15 @@ class RewindDatabase extends Dexie {
       vendorBills: "id, vendor_id, is_paid",
       expenses: "id, category, paid_by, created_at",
       wastageRecords: "id, stock_item_id, reason, created_at",
+
+      // Phase 3 stores
+      staffProfiles: "id, user_id, name, role",
+      attendance: "id, user_id, status, clock_in",
+      shiftSchedules: "id, user_id, day_of_week",
+      leaveRequests: "id, user_id, status",
+      payslips: "id, payroll_run_id, user_id",
+      accounts: "code, type",
+      journalEntries: "id, entry_date, reference_no",
     });
   }
 
@@ -221,7 +252,6 @@ class RewindDatabase extends Dexie {
       await this.diningTables.bulkAdd(SAMPLE_TABLES as LocalTable[]);
       await this.staff.bulkAdd(SAMPLE_STAFF);
 
-      // Add one default active cash session
       await this.cashSessions.add({
         id: "sess-default-1",
         user_id: "user-3",
@@ -241,12 +271,19 @@ class RewindDatabase extends Dexie {
       await this.purchaseOrders.bulkAdd(SAMPLE_PURCHASE_ORDERS);
       await this.expenses.bulkAdd(SAMPLE_EXPENSES);
     }
+
+    const hrCount = await this.staffProfiles.count();
+    if (hrCount === 0) {
+      await this.staffProfiles.bulkAdd(SAMPLE_STAFF_PROFILES);
+      await this.attendance.bulkAdd(SAMPLE_ATTENDANCE);
+      await this.shiftSchedules.bulkAdd(SAMPLE_SHIFTS);
+      await this.accounts.bulkAdd(DEFAULT_CHART_OF_ACCOUNTS);
+    }
   }
 }
 
 export const db = new RewindDatabase();
 
-// Run client-side seeding
 if (typeof window !== "undefined") {
   db.seedDefaultsIfEmpty().catch((err) => console.error("Dexie seed error:", err));
 }

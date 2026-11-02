@@ -400,6 +400,14 @@ export const useCartStore = create<CartState>((set, get) => ({
       console.warn("Inventory deduction warning:", invErr);
     }
 
+    // 4c. Auto-post double-entry accounting journal
+    try {
+      const { postOrderSaleJournal } = await import("@/lib/accounting/auto-poster");
+      await postOrderSaleJournal(localOrder);
+    } catch (accErr) {
+      console.warn("Accounting auto-post warning:", accErr);
+    }
+
     // 5. Clear cart
     state.clearCart();
 

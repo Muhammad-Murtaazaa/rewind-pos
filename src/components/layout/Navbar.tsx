@@ -25,6 +25,8 @@ import {
   ShoppingBag,
   DollarSign,
   BarChart3,
+  Users,
+  BookOpen,
 } from "lucide-react";
 
 export function Navbar() {
@@ -43,6 +45,8 @@ export function Navbar() {
     { href: "/inventory", label: t("inventory"), icon: SlidersHorizontal },
     { href: "/purchasing", label: t("purchasing"), icon: ShoppingBag },
     { href: "/expenses", label: "Expenses", icon: DollarSign },
+    { href: "/hr", label: "Staff & HR", icon: Users },
+    { href: "/accounting", label: "Accounting", icon: BookOpen },
     { href: "/reports", label: "Reports", icon: BarChart3 },
     { href: "/dashboard", label: t("dashboard"), icon: TrendingUp },
   ];
