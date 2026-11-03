@@ -639,7 +639,7 @@ export async function printTestReceipt(): Promise<boolean> {
     cashier_id: "test",
     cashier_name: "Manager",
     order_type: "DINE_IN",
-    status: "PAID",
+    status: "COMPLETED",
     table_number: "01",
     items: [
       {
