@@ -8,6 +8,13 @@ import { useTranslation } from "@/lib/i18n/translations";
 import { SyncPill } from "../common/SyncPill";
 import { PinModal } from "../common/PinModal";
 import { RecallModal } from "../pos/RecallModal";
+import { PrinterSettingsModal } from "../printing/PrinterSettingsModal";
+import {
+  autoDetectPrinter,
+  subscribePrinterState,
+  getCurrentPrinterState,
+  type PrinterState,
+} from "@/lib/printing/thermal-printer";
 import { db } from "@/lib/db/dexie";
 import {
   Menu,
@@ -147,7 +154,15 @@ export function AppHeader() {
   const { t } = useTranslation(language);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isRecallOpen, setIsRecallOpen] = useState(false);
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
   const [heldCount, setHeldCount] = useState<number>(0);
+  const [printerState, setPrinterState] = useState<PrinterState>(getCurrentPrinterState());
+
+  useEffect(() => {
+    autoDetectPrinter().then(setPrinterState);
+    const unsub = subscribePrinterState(setPrinterState);
+    return () => unsub();
+  }, []);
 
   const refreshHeldCount = async () => {
     try {
@@ -284,6 +299,22 @@ export function AppHeader() {
           {/* Realtime Outbox Sync Status Pill */}
           <SyncPill />
 
+          {/* Thermal Printer Quick Status & Settings Pill */}
+          <button
+            onClick={() => {
+              playSound("click");
+              setIsPrinterModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 hover:border-vintage-orange text-espresso-800 dark:text-cream-100 text-xs font-bold transition-all shadow-card group"
+            title={`Thermal Printer: ${printerState.name} (${printerState.paperWidth}mm)`}
+          >
+            <div className="relative">
+              <Printer className="w-3.5 h-3.5 text-vintage-orange group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+            <span className="hidden sm:inline text-[11px] font-mono">{printerState.paperWidth}mm</span>
+          </button>
+
           {/* Parked Tickets Quick Access Button */}
           <button
             onClick={() => {
@@ -351,6 +382,12 @@ export function AppHeader() {
           setIsRecallOpen(false);
           refreshHeldCount();
         }}
+      />
+
+      {/* Universal Thermal Printer Configuration Modal */}
+      <PrinterSettingsModal
+        isOpen={isPrinterModalOpen}
+        onClose={() => setIsPrinterModalOpen(false)}
       />
     </>
   );
