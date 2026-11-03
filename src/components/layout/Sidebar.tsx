@@ -32,6 +32,7 @@ import {
   VolumeX,
   Lock,
   X,
+  Download,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -53,6 +54,31 @@ export function Sidebar() {
   } = useUiStore();
   const { t } = useTranslation(language);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  React.useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    playSound("click");
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+      if (choiceResult.outcome === "accepted") {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert(
+        "To Install in Google Chrome:\n1. Look at the right side of your Chrome URL address bar.\n2. Click the 'Install App' icon (computer with down arrow).\n3. Click 'Install' to add Rewind POS to your desktop."
+      );
+    }
+  };
 
   const navSections = [
     {
@@ -303,6 +329,15 @@ export function Sidebar() {
             >
               <Compass className="w-3.5 h-3.5" />
             </Link>
+
+            {/* Install Desktop App */}
+            <button
+              onClick={handleInstallClick}
+              className="p-1.5 rounded-xl border border-cream-300 dark:border-espresso-700 bg-white dark:bg-espresso-800 hover:border-vintage-orange text-espresso-700 dark:text-cream-200 transition-colors flex items-center justify-center w-8 h-8 group"
+              title="Install Rewind POS as Desktop / Tablet App"
+            >
+              <Download className="w-3.5 h-3.5 text-vintage-orange group-hover:scale-110 transition-transform" />
+            </button>
           </div>
 
           {/* Current Staff Switcher Card */}
