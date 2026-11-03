@@ -39,6 +39,7 @@ import {
   QrCode,
   ShieldCheck,
   History,
+  Printer,
 } from "lucide-react";
 
 interface RouteInfo {
