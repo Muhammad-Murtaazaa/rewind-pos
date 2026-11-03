@@ -663,6 +663,7 @@ export async function printTestReceipt(): Promise<boolean> {
         discount_amount: 0,
         total_price: 450,
         station_type: "KITCHEN",
+        selected_modifiers: [],
       },
     ],
     subtotal: 1810,
