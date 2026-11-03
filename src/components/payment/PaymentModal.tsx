@@ -7,6 +7,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { formatCurrency } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n/translations";
 import { type LocalOrder } from "@/lib/db/dexie";
+import { autoPrintReceipt } from "@/lib/printing/thermal-printer";
 import {
   Banknote,
   CreditCard,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Coins,
   ArrowRight,
+  Printer,
 } from "lucide-react";
 
 interface PaymentModalProps {
@@ -38,6 +40,7 @@ export function PaymentModal({ isOpen, onClose, onOrderCompleted }: PaymentModal
   >("CASH");
   const [tenderedAmount, setTenderedAmount] = useState<number>(total);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [autoPrint, setAutoPrint] = useState<boolean>(true);
 
   if (!isOpen) return null;
 
@@ -64,6 +67,16 @@ export function PaymentModal({ isOpen, onClose, onOrderCompleted }: PaymentModal
         amount_tendered: paymentMethod === "CASH" ? tenderedAmount : total,
         change_returned: paymentMethod === "CASH" ? changeDue : 0,
       });
+
+      // Auto-print receipt to thermal printer or browser
+      if (autoPrint) {
+        try {
+          const printResult = await autoPrintReceipt(order);
+          console.log(`Auto-print result: ${printResult} for order ${order.order_number}`);
+        } catch (printErr) {
+          console.warn("Auto-print failed, receipt available in modal:", printErr);
+        }
+      }
 
       setIsProcessing(false);
       onOrderCompleted(order);
@@ -224,8 +237,35 @@ export function PaymentModal({ isOpen, onClose, onOrderCompleted }: PaymentModal
           </div>
         )}
 
+        {/* Auto-Print Toggle */}
+        <div className="mt-4 flex items-center justify-between px-1">
+          <label className="flex items-center gap-2 cursor-pointer group" title="Automatically print receipt when sale completes">
+            <div
+              onClick={() => setAutoPrint(!autoPrint)}
+              className={`w-10 h-6 rounded-full flex items-center transition-colors duration-200 cursor-pointer ${
+                autoPrint ? "bg-vintage-orange" : "bg-cream-300 dark:bg-espresso-700"
+              }`}
+            >
+              <div
+                className={`w-4.5 h-4.5 mx-0.5 rounded-full bg-white shadow transition-transform duration-200 ${
+                  autoPrint ? "translate-x-4" : "translate-x-0.5"
+                }`}
+                style={{ width: 18, height: 18 }}
+              />
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-espresso-700 dark:text-cream-300 group-hover:text-espresso-900">
+              <Printer className="w-3.5 h-3.5 text-vintage-orange" />
+              <span>Auto-Print Receipt</span>
+            </div>
+          </label>
+
+          <span className="text-[10px] text-espresso-700/50 dark:text-cream-300/50 font-medium">
+            {autoPrint ? "Receipt prints on completion" : "Manual print only"}
+          </span>
+        </div>
+
         {/* Complete Payment Button */}
-        <div className="pt-4 border-t border-cream-200 dark:border-espresso-700 mt-4 flex items-center justify-between">
+        <div className="pt-4 border-t border-cream-200 dark:border-espresso-700 mt-3 flex items-center justify-between">
           <button
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl border border-cream-300 dark:border-espresso-700 text-xs font-semibold text-espresso-700 hover:bg-cream-200 transition-colors"
