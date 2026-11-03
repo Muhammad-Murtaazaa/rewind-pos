@@ -643,6 +643,7 @@ export async function printTestReceipt(): Promise<boolean> {
     table_number: "01",
     items: [
       {
+        id: "test-item-1",
         item_id: "test-1",
         item_name: "Caramel Macchiato",
         variant_name: "Large",
@@ -654,6 +655,7 @@ export async function printTestReceipt(): Promise<boolean> {
         selected_modifiers: [{ modifier_id: "mod-oat", modifier_name: "Oat Milk", price_add: 120 }],
       },
       {
+        id: "test-item-2",
         item_id: "test-2",
         item_name: "Butter Croissant",
         unit_price: 450,
