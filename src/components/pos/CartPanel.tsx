@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { db } from "@/lib/db/dexie";
+import { RecallModal } from "./RecallModal";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -18,6 +20,7 @@ import {
   CheckCircle2,
   X,
   Sparkles,
+  History,
 } from "lucide-react";
 
 interface CartPanelProps {
@@ -56,6 +59,23 @@ export function CartPanel({ onOpenPayment, onOpenTableModal }: CartPanelProps) {
   const [discountVal, setDiscountVal] = useState<number>(10);
   const [discountReason, setDiscountReason] = useState<string>("Staff / Regular Courtesy");
   const [heldSuccessMsg, setHeldSuccessMsg] = useState<string | null>(null);
+  const [heldCount, setHeldCount] = useState<number>(0);
+  const [isRecallModalOpen, setIsRecallModalOpen] = useState<boolean>(false);
+
+  const refreshHeldCount = async () => {
+    try {
+      const count = await db.orders.filter((o) => o.status === "PENDING").count();
+      setHeldCount(count);
+    } catch {
+      setHeldCount(0);
+    }
+  };
+
+  useEffect(() => {
+    refreshHeldCount();
+    const interval = setInterval(refreshHeldCount, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const subtotal = getSubtotal();
   const itemDiscounts = getItemDiscountsTotal();
@@ -85,6 +105,7 @@ export function CartPanel({ onOpenPayment, onOpenTableModal }: CartPanelProps) {
       const orderNo = await holdCurrentOrder(currentUser?.name || "Cashier");
       playSound("chime");
       setHeldSuccessMsg(`Ticket ${orderNo} parked on hold`);
+      await refreshHeldCount();
       setTimeout(() => setHeldSuccessMsg(null), 4000);
     } catch (err: any) {
       alert(err.message);
@@ -100,17 +121,37 @@ export function CartPanel({ onOpenPayment, onOpenTableModal }: CartPanelProps) {
             <Coffee className="w-4 h-4 text-vintage-orange" />
             {t("orderSummary")}
           </span>
-          {items.length > 0 && (
+          <div className="flex items-center gap-2">
+            {/* Recall / Parked button */}
             <button
               onClick={() => {
                 playSound("click");
-                clearCart();
+                setIsRecallModalOpen(true);
               }}
-              className="text-xs text-brick hover:underline font-semibold"
+              className="px-2.5 py-1 rounded-xl text-xs font-bold bg-cream-200/90 dark:bg-espresso-700 hover:bg-vintage-orange hover:text-white text-espresso-800 dark:text-cream-200 transition-colors flex items-center gap-1.5 shadow-sm group"
+              title="View and recall parked orders"
             >
-              {t("clear")}
+              <History className="w-3.5 h-3.5 text-vintage-orange group-hover:text-white" />
+              <span>Recall</span>
+              {heldCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-vintage-orange text-white text-[10px] font-black leading-none">
+                  {heldCount}
+                </span>
+              )}
             </button>
-          )}
+
+            {items.length > 0 && (
+              <button
+                onClick={() => {
+                  playSound("click");
+                  clearCart();
+                }}
+                className="text-xs text-brick hover:underline font-semibold"
+              >
+                {t("clear")}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Order Type Pills: Dine-in, Takeaway, Delivery */}
@@ -464,6 +505,15 @@ export function CartPanel({ onOpenPayment, onOpenTableModal }: CartPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Held / Parked Tickets Modal */}
+      <RecallModal
+        isOpen={isRecallModalOpen}
+        onClose={() => {
+          setIsRecallModalOpen(false);
+          refreshHeldCount();
+        }}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { ModifierModal } from "@/components/pos/ModifierModal";
 import { PaymentModal } from "@/components/payment/PaymentModal";
 import { ReceiptModal } from "@/components/printing/ReceiptModal";
 import { TableSelectModal } from "@/components/tables/TableSelectModal";
+import { RecallModal } from "@/components/pos/RecallModal";
 import {
   Search,
   Sparkles,
@@ -35,12 +36,29 @@ export default function PosPage() {
   const [isTableModalOpen, setIsTableModalOpen] = useState<boolean>(false);
   const [completedOrder, setCompletedOrder] = useState<LocalOrder | null>(null);
   const [isCartOpenMobile, setIsCartOpenMobile] = useState<boolean>(false);
+  const [isRecallOpen, setIsRecallOpen] = useState<boolean>(false);
+  const [heldCount, setHeldCount] = useState<number>(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { items: cartItems, addItem } = useCartStore();
   const { language, playSound } = useUiStore();
   const { t } = useTranslation(language);
+
+  const refreshHeldCount = async () => {
+    try {
+      const count = await db.orders.filter((o) => o.status === "PENDING").count();
+      setHeldCount(count);
+    } catch {
+      setHeldCount(0);
+    }
+  };
+
+  useEffect(() => {
+    refreshHeldCount();
+    const interval = setInterval(refreshHeldCount, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load menu and categories from Dexie IndexedDB
   useEffect(() => {
@@ -150,6 +168,24 @@ export default function PosPage() {
                 </button>
               )}
             </div>
+
+            {/* Parked / Recall Tickets Button */}
+            <button
+              onClick={() => {
+                playSound("click");
+                setIsRecallOpen(true);
+              }}
+              className="h-11 px-3.5 rounded-2xl bg-white dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 hover:border-vintage-orange text-espresso-800 dark:text-cream-100 font-bold text-xs flex items-center gap-2 shadow-card transition-all"
+              title="View and recall parked tickets"
+            >
+              <History className="w-4 h-4 text-vintage-orange" />
+              <span className="hidden sm:inline">Parked</span>
+              {heldCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-vintage-orange text-white text-[10px] font-black">
+                  {heldCount}
+                </span>
+              )}
+            </button>
 
             {/* Mobile View Cart Button */}
             <button
@@ -316,6 +352,15 @@ export default function PosPage() {
       <ReceiptModal
         order={completedOrder}
         onClose={() => setCompletedOrder(null)}
+      />
+
+      {/* Held / Parked Tickets Modal */}
+      <RecallModal
+        isOpen={isRecallOpen}
+        onClose={() => {
+          setIsRecallOpen(false);
+          refreshHeldCount();
+        }}
       />
     </div>
   );
