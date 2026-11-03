@@ -28,6 +28,34 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
   const { t } = useTranslation(language);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(5);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-countdown timer to clear screen for next customer in 5s
+  useEffect(() => {
+    if (!order || isPaused || countdown === null) return;
+    if (countdown <= 0) {
+      onClose();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, isPaused, onClose, order]);
+
+  // Keyboard shortcut: Enter or Space starts new sale immediately
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        e.preventDefault();
+        playSound("click");
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, playSound]);
 
   if (!order) return null;
 
@@ -269,9 +297,27 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
 
         {/* Action Buttons */}
         <div className="p-4 border-t border-cream-200 dark:border-espresso-700 bg-cream-50/50 dark:bg-espresso-950/40 space-y-2">
+          {/* Auto-Close Countdown Pill */}
+          {countdown !== null && (
+            <div className="flex items-center justify-between px-2 py-1 bg-cream-200/60 dark:bg-espresso-800/60 rounded-xl text-[11px]">
+              <span className="text-espresso-700/70 dark:text-cream-300/70">
+                {isPaused ? "Auto-close paused" : `Next sale in ${countdown}s...`}
+              </span>
+              <button
+                onClick={() => setIsPaused(!isPaused)}
+                className="font-bold text-vintage-orange hover:underline"
+              >
+                {isPaused ? "Resume" : "Pause"}
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={handlePrint}
+              onClick={() => {
+                setIsPaused(true);
+                handlePrint();
+              }}
               className="h-11 rounded-2xl bg-cream-100 dark:bg-espresso-800 hover:bg-cream-200 border border-cream-300 dark:border-espresso-700 text-espresso-800 dark:text-cream-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
             >
               <Printer className="w-4 h-4 text-vintage-orange" />
@@ -279,7 +325,10 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
             </button>
 
             <button
-              onClick={handleWhatsAppShare}
+              onClick={() => {
+                setIsPaused(true);
+                handleWhatsAppShare();
+              }}
               className="h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
@@ -287,7 +336,10 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
             </button>
 
             <button
-              onClick={handleCopyReceipt}
+              onClick={() => {
+                setIsPaused(true);
+                handleCopyReceipt();
+              }}
               className="h-11 rounded-2xl bg-cream-100 dark:bg-espresso-800 hover:bg-cream-200 border border-cream-300 dark:border-espresso-700 text-espresso-800 dark:text-cream-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
             >
               {copied ? (
@@ -312,7 +364,7 @@ export function ReceiptModal({ order, onClose }: ReceiptModalProps) {
             className="w-full h-12 rounded-2xl bg-vintage-orange hover:bg-vintage-orange/90 text-white font-serif font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2"
           >
             <Coffee className="w-4 h-4" />
-            <span>{t("newSale")}</span>
+            <span>{t("newSale")} (Enter)</span>
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db, type LocalOrder } from "@/lib/db/dexie";
 import { type MenuItemDef, type CategoryDef } from "@/lib/data/sample-menu";
 import { useCartStore } from "@/stores/cartStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useTranslation } from "@/lib/i18n/translations";
 import { ItemTile } from "@/components/pos/ItemTile";
@@ -41,7 +42,8 @@ export default function PosPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { items: cartItems, addItem } = useCartStore();
+  const { items: cartItems, addItem, holdCurrentOrder } = useCartStore();
+  const { currentUser } = useAuthStore();
   const { language, playSound } = useUiStore();
   const { t } = useTranslation(language);
 
@@ -79,22 +81,42 @@ export default function PosPage() {
     loadData();
   }, []);
 
-  // Global keyboard shortcuts (Ctrl+K to search, Esc to close)
+  // Global cashier keyboard shortcuts (F2, F4, F6, F12, Ctrl+K, Esc)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName);
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         searchInputRef.current?.focus();
-      }
-      if (e.key === "Escape") {
+      } else if (e.key === "F2") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === "F4" && !isInput && cartItems.length > 0) {
+        e.preventDefault();
+        holdCurrentOrder(currentUser?.name || "Cashier")
+          .then(() => {
+            playSound("chime");
+            refreshHeldCount();
+          })
+          .catch((err) => alert(err.message));
+      } else if (e.key === "F6") {
+        e.preventDefault();
+        setIsRecallOpen(true);
+      } else if (e.key === "F12" && cartItems.length > 0 && !isPaymentOpen) {
+        e.preventDefault();
+        setIsPaymentOpen(true);
+      } else if (e.key === "Escape") {
         setCustomizingItem(null);
         setIsPaymentOpen(false);
         setIsTableModalOpen(false);
+        setIsRecallOpen(false);
+        setCompletedOrder(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [cartItems, isPaymentOpen, holdCurrentOrder, currentUser, playSound]);
 
   // Filter items by category & search query
   const filteredItems = useMemo(() => {
@@ -297,6 +319,52 @@ export default function PosPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Cashier Speed Dock (Shortcuts & Quick Actions) */}
+        <div className="hidden sm:flex items-center justify-between px-4 py-2 bg-cream-50/90 dark:bg-espresso-900/90 border-t border-cream-200 dark:border-espresso-700 text-[11px] font-semibold text-espresso-700/70 dark:text-cream-300/70">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-vintage-orange uppercase tracking-wider text-[10px]">Speed Keys:</span>
+            <button
+              onClick={() => searchInputRef.current?.focus()}
+              className="px-2 py-0.5 rounded-lg bg-cream-200/80 dark:bg-espresso-800 hover:bg-cream-300 dark:hover:bg-espresso-700 font-mono text-[10px] text-espresso-800 dark:text-cream-200 transition-colors"
+            >
+              <kbd className="font-bold">F2</kbd> Search
+            </button>
+            <button
+              onClick={() => {
+                if (cartItems.length > 0) {
+                  holdCurrentOrder(currentUser?.name || "Cashier")
+                    .then(() => {
+                      playSound("chime");
+                      refreshHeldCount();
+                    })
+                    .catch((err) => alert(err.message));
+                }
+              }}
+              className="px-2 py-0.5 rounded-lg bg-cream-200/80 dark:bg-espresso-800 hover:bg-cream-300 dark:hover:bg-espresso-700 font-mono text-[10px] text-espresso-800 dark:text-cream-200 transition-colors"
+            >
+              <kbd className="font-bold">F4</kbd> Hold
+            </button>
+            <button
+              onClick={() => setIsRecallOpen(true)}
+              className="px-2 py-0.5 rounded-lg bg-cream-200/80 dark:bg-espresso-800 hover:bg-cream-300 dark:hover:bg-espresso-700 font-mono text-[10px] text-espresso-800 dark:text-cream-200 transition-colors"
+            >
+              <kbd className="font-bold">F6</kbd> Parked ({heldCount})
+            </button>
+            <button
+              onClick={() => {
+                if (cartItems.length > 0) setIsPaymentOpen(true);
+              }}
+              className="px-2 py-0.5 rounded-lg bg-vintage-orange/15 dark:bg-vintage-orange/25 hover:bg-vintage-orange/30 font-mono text-[10px] text-vintage-orange font-bold transition-colors"
+            >
+              <kbd className="font-bold">F12</kbd> Pay Now
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-cream-200 dark:bg-espresso-800 font-mono font-bold">Esc</kbd>
+            <span>Cancel</span>
+          </div>
         </div>
       </div>
 

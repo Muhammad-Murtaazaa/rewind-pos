@@ -41,10 +41,38 @@ export function PaymentModal({ isOpen, onClose, onOrderCompleted }: PaymentModal
   const [tenderedAmount, setTenderedAmount] = useState<number>(total);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [autoPrint, setAutoPrint] = useState<boolean>(true);
+  const [showNumpad, setShowNumpad] = useState<boolean>(true);
+
+  // Keyboard shortcut: Press Enter to complete payment when ready
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !isProcessing && (paymentMethod !== "CASH" || tenderedAmount >= total)) {
+        e.preventDefault();
+        handleCompleteSale();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isProcessing, paymentMethod, tenderedAmount, total]);
 
   if (!isOpen) return null;
 
   const changeDue = Math.max(0, tenderedAmount - total);
+
+  const handleKeypadPress = (val: string) => {
+    playSound("click");
+    if (val === "C") {
+      setTenderedAmount(0);
+    } else if (val === "BACK") {
+      const str = tenderedAmount.toString();
+      setTenderedAmount(str.length > 1 ? parseFloat(str.slice(0, -1)) || 0 : 0);
+    } else if (val === "00") {
+      setTenderedAmount(tenderedAmount === 0 ? 0 : parseFloat(`${tenderedAmount}00`));
+    } else {
+      setTenderedAmount(tenderedAmount === 0 ? parseFloat(val) : parseFloat(`${tenderedAmount}${val}`));
+    }
+  };
 
   // Quick cash denomination presets in PKR
   const quickCashOptions = [
@@ -198,6 +226,83 @@ export function PaymentModal({ isOpen, onClose, onOrderCompleted }: PaymentModal
                 <span className="font-sans font-black text-2xl text-sage-dark dark:text-emerald-200">
                   {formatCurrency(changeDue)}
                 </span>
+              </div>
+            </div>
+
+            {/* Touchscreen Fast Keypad */}
+            <div className="pt-2 border-t border-cream-200 dark:border-espresso-700">
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                {["7", "8", "9"].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => handleKeypadPress(n)}
+                    className="h-9 rounded-xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 dark:hover:bg-espresso-600 font-bold text-sm text-espresso-900 dark:text-cream-100 border border-cream-200 dark:border-espresso-600 active:scale-95 transition-all"
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleKeypadPress("C")}
+                  className="h-9 rounded-xl bg-brick/10 hover:bg-brick/20 font-bold text-xs text-brick border border-brick/30 active:scale-95 transition-all"
+                >
+                  CLEAR
+                </button>
+
+                {["4", "5", "6"].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => handleKeypadPress(n)}
+                    className="h-9 rounded-xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 dark:hover:bg-espresso-600 font-bold text-sm text-espresso-900 dark:text-cream-100 border border-cream-200 dark:border-espresso-600 active:scale-95 transition-all"
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleKeypadPress("BACK")}
+                  className="h-9 rounded-xl bg-cream-200 dark:bg-espresso-700 hover:bg-cream-300 font-bold text-xs text-espresso-800 dark:text-cream-200 border border-cream-300 dark:border-espresso-600 active:scale-95 transition-all"
+                >
+                  ⌫ DEL
+                </button>
+
+                {["1", "2", "3"].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => handleKeypadPress(n)}
+                    className="h-9 rounded-xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 dark:hover:bg-espresso-600 font-bold text-sm text-espresso-900 dark:text-cream-100 border border-cream-200 dark:border-espresso-600 active:scale-95 transition-all"
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleKeypadPress("00")}
+                  className="h-9 rounded-xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 dark:hover:bg-espresso-600 font-bold text-xs text-espresso-900 dark:text-cream-100 border border-cream-200 dark:border-espresso-600 active:scale-95 transition-all"
+                >
+                  00
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleKeypadPress("0")}
+                  className="col-span-2 h-9 rounded-xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 dark:hover:bg-espresso-600 font-bold text-sm text-espresso-900 dark:text-cream-100 border border-cream-200 dark:border-espresso-600 active:scale-95 transition-all"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSound("click");
+                    setTenderedAmount(total);
+                  }}
+                  className="col-span-2 h-9 rounded-xl bg-sage-light dark:bg-emerald-950/80 hover:bg-sage/20 font-bold text-xs text-sage-dark dark:text-emerald-300 border border-sage/40 active:scale-95 transition-all"
+                >
+                  Exact (₨ {total})
+                </button>
               </div>
             </div>
           </div>
