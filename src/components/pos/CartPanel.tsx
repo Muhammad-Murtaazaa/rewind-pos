@@ -372,9 +372,18 @@ export function CartPanel({ onOpenPayment, onOpenTableModal }: CartPanelProps) {
 
           {/* Hold Ticket Button */}
           <button
-            onClick={handleHoldTicket}
-            disabled={items.length === 0}
-            className="col-span-1 h-12 rounded-2xl bg-cream-100 dark:bg-espresso-700 hover:bg-cream-200 border border-cream-300 dark:border-espresso-600 text-espresso-800 dark:text-cream-100 text-xs font-bold flex flex-col items-center justify-center transition-all disabled:opacity-40"
+            onClick={() => {
+              if (items.length === 0) {
+                alert("Please add at least one item to the cart before parking the ticket on hold.");
+                return;
+              }
+              handleHoldTicket();
+            }}
+            className={`col-span-1 h-12 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center transition-all ${
+              items.length === 0
+                ? "bg-cream-100/70 dark:bg-espresso-800 border-cream-300/60 dark:border-espresso-700 text-espresso-700/50 dark:text-cream-300/50 hover:border-vintage-orange"
+                : "bg-amber-100/60 dark:bg-amber-950/60 hover:bg-amber-200/80 border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-200 shadow-sm"
+            }`}
             title="Park current ticket on hold"
           >
             <PauseCircle className="w-4 h-4 text-vintage-orange" />

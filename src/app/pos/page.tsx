@@ -175,16 +175,14 @@ export default function PosPage() {
                 playSound("click");
                 setIsRecallOpen(true);
               }}
-              className="h-11 px-3.5 rounded-2xl bg-white dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 hover:border-vintage-orange text-espresso-800 dark:text-cream-100 font-bold text-xs flex items-center gap-2 shadow-card transition-all"
+              className="h-11 px-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/80 hover:border-vintage-orange text-amber-950 dark:text-amber-200 font-bold text-xs flex items-center gap-2 shadow-card transition-all flex-shrink-0"
               title="View and recall parked tickets"
             >
               <History className="w-4 h-4 text-vintage-orange" />
-              <span className="hidden sm:inline">Parked</span>
-              {heldCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-vintage-orange text-white text-[10px] font-black">
-                  {heldCount}
-                </span>
-              )}
+              <span>Parked</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-vintage-orange text-white text-[10px] font-black">
+                {heldCount}
+              </span>
             </button>
 
             {/* Mobile View Cart Button */}

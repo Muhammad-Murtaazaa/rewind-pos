@@ -7,6 +7,8 @@ import { useUiStore } from "@/stores/uiStore";
 import { useTranslation } from "@/lib/i18n/translations";
 import { SyncPill } from "../common/SyncPill";
 import { PinModal } from "../common/PinModal";
+import { RecallModal } from "../pos/RecallModal";
+import { db } from "@/lib/db/dexie";
 import {
   Menu,
   Lock,
@@ -29,6 +31,7 @@ import {
   Compass,
   QrCode,
   ShieldCheck,
+  History,
 } from "lucide-react";
 
 interface RouteInfo {
@@ -143,6 +146,23 @@ export function AppHeader() {
   const { language, setMobileMenuOpen, playSound } = useUiStore();
   const { t } = useTranslation(language);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isRecallOpen, setIsRecallOpen] = useState(false);
+  const [heldCount, setHeldCount] = useState<number>(0);
+
+  const refreshHeldCount = async () => {
+    try {
+      const count = await db.orders.filter((o) => o.status === "PENDING").count();
+      setHeldCount(count);
+    } catch {
+      setHeldCount(0);
+    }
+  };
+
+  useEffect(() => {
+    refreshHeldCount();
+    const interval = setInterval(refreshHeldCount, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Live Asia/Karachi Clock
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -264,6 +284,26 @@ export function AppHeader() {
           {/* Realtime Outbox Sync Status Pill */}
           <SyncPill />
 
+          {/* Parked Tickets Quick Access Button */}
+          <button
+            onClick={() => {
+              playSound("click");
+              setIsRecallOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 hover:border-vintage-orange text-amber-950 dark:text-amber-200 text-xs font-bold transition-all shadow-card group"
+            title="View Parked & Held Tickets"
+          >
+            <History className="w-3.5 h-3.5 text-vintage-orange group-hover:rotate-180 transition-transform duration-300" />
+            <span className="hidden xs:inline">Parked</span>
+            {heldCount > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full bg-vintage-orange text-white text-[10px] font-black leading-tight">
+                {heldCount}
+              </span>
+            ) : (
+              <span className="text-[10px] opacity-60 font-semibold">(0)</span>
+            )}
+          </button>
+
           {/* Quick Lock Terminal Button */}
           <button
             onClick={() => {
@@ -302,6 +342,15 @@ export function AppHeader() {
         onClose={() => setIsPinModalOpen(false)}
         title="Terminal Security"
         subtitle="Enter 4-digit staff PIN to switch or unlock"
+      />
+
+      {/* Held / Parked Tickets Modal */}
+      <RecallModal
+        isOpen={isRecallOpen}
+        onClose={() => {
+          setIsRecallOpen(false);
+          refreshHeldCount();
+        }}
       />
     </>
   );
