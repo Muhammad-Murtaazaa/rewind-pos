@@ -633,7 +633,6 @@ export async function printTestReceipt(): Promise<boolean> {
   const dummyOrder: LocalOrder = {
     id: "test-" + Date.now(),
     order_number: "TEST-01",
-    customer_id: undefined,
     customer_name: "Printer Test Customer",
     customer_phone: "0300-1234567",
     cashier_id: "test",
@@ -675,8 +674,9 @@ export async function printTestReceipt(): Promise<boolean> {
     payment_method: "CASH",
     amount_tendered: 2000,
     change_returned: 16.4,
+    sync_status: "SYNCED",
     created_at: new Date().toISOString(),
-    synced: 1,
+    updated_at: new Date().toISOString(),
   };
 
   const result = await autoPrintReceipt(dummyOrder);
