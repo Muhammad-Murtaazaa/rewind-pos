@@ -651,7 +651,7 @@ export async function printTestReceipt(): Promise<boolean> {
         discount_amount: 0,
         total_price: 1360,
         station_type: "BAR",
-        selected_modifiers: [{ modifier_name: "Oat Milk", price_add: 120 }],
+        selected_modifiers: [{ modifier_id: "mod-oat", modifier_name: "Oat Milk", price_add: 120 }],
       },
       {
         item_id: "test-2",
