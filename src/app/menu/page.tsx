@@ -168,7 +168,7 @@ export default function MenuManagementPage() {
 
   // Delete item handler
   const handleDeleteItem = async (item: MenuItemDef) => {
-    playSound("delete");
+    playSound("click");
     try {
       await db.items.delete(item.id);
       await db.outbox.add({
