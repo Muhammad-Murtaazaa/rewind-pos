@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   History,
   Printer,
+  UtensilsCrossed,
 } from "lucide-react";
 
 interface RouteInfo {
@@ -55,6 +56,12 @@ const ROUTE_MAP: Record<string, RouteInfo> = {
     urduTitle: "کاؤنٹر پی او ایس",
     badge: "Front-of-House",
     icon: Coffee,
+  },
+  "/menu": {
+    title: "Menu Items & Pricing",
+    urduTitle: "مینو اور قیمتیں",
+    badge: "Catalog",
+    icon: UtensilsCrossed,
   },
   "/tables": {
     title: "Table & Floor Plan",

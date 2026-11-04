@@ -33,6 +33,7 @@ import {
   Lock,
   X,
   Download,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -85,6 +86,7 @@ export function Sidebar() {
       groupTitle: language === "ur" ? "کاؤنٹر اور سروس" : "Counter & Service",
       items: [
         { href: "/pos", label: t("pos"), icon: Coffee, badge: "FOH" },
+        { href: "/menu", label: language === "ur" ? "مینو و قیمتیں" : "Menu & Pricing", icon: UtensilsCrossed, badge: "Items" },
         { href: "/tables", label: t("tables"), icon: LayoutGrid },
         { href: "/cash-drawer", label: t("cashDrawer"), icon: Receipt },
         { href: "/qr/T-01", label: language === "ur" ? "ٹیبل کیو آر" : "Table QR Order", icon: QrCode },
