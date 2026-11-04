@@ -8,7 +8,16 @@ services:
     container_name: rewind-pos
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Bind to localhost only so Nginx handles public traffic with caching and SSL
+      - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 384M
+        reservations:
+          cpus: "0.10"
+          memory: 64M
