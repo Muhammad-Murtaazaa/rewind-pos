@@ -5,7 +5,7 @@ import { db } from "@/lib/db/dexie";
 import { type MenuItemDef, type CategoryDef, type ModifierGroupDef, SAMPLE_MENU_ITEMS, SAMPLE_CATEGORIES } from "@/lib/data/sample-menu";
 import { formatCurrency, generateUUID } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
-import { MenuItemModal } from "@/components/menu/MenuItemModal";
+import { MenuItemModal, PRESET_PHOTOS } from "@/components/menu/MenuItemModal";
 import { QuickPriceModal } from "@/components/menu/QuickPriceModal";
 import {
   Search,
