@@ -209,11 +209,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         role: newStaff.role as any,
         cnic: "42101-" + Math.floor(1000000 + Math.random() * 9000000) + "-1",
         phone: (newStaff as any).phone || "0300-1234567",
-        joining_date: new Date().toISOString(),
-        base_salary: data.role === "OWNER" ? 150000 : data.role === "MANAGER" ? 85000 : 50000,
-        bank_account: "PK36MEZN000123456789",
-        emergency_contact: "Family",
+        email: newStaff.email || `${newStaff.name.toLowerCase().replace(/\s+/g, "")}@rewindcafe.pk`,
         avatar: newStaff.avatar || "👤",
+        salary_type: "MONTHLY",
+        base_salary: data.role === "OWNER" ? 150000 : data.role === "MANAGER" ? 85000 : 50000,
+        joining_date: new Date().toISOString(),
+        is_active: true,
       });
     } catch {
       // ignore
