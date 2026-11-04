@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
-import { SAMPLE_STAFF } from "@/lib/data/sample-menu";
-import { Lock, Unlock, X, ShieldAlert, UserCheck } from "lucide-react";
+import { Lock, Unlock, X, ShieldAlert, UserCheck, Users } from "lucide-react";
 
 interface PinModalProps {
   isOpen: boolean;
@@ -24,7 +23,15 @@ export function PinModal({
 }: PinModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
-  const { loginWithPin } = useAuthStore();
+  const { loginWithPin, staffList, loadStaff } = useAuthStore();
+
+  useEffect(() => {
+    if (isOpen) {
+      loadStaff();
+      setPin("");
+      setError(false);
+    }
+  }, [isOpen, loadStaff]);
 
   if (!isOpen) return null;
 
@@ -50,21 +57,22 @@ export function PinModal({
     setError(false);
   };
 
-  const verifyPin = (enteredPin: string) => {
-    const staff = SAMPLE_STAFF.find((s) => s.pin === enteredPin);
-    if (!staff) {
+  const verifyPin = async (enteredPin: string) => {
+    const matchedStaff = staffList.find((s) => s.pin === enteredPin);
+
+    if (requiredRole && matchedStaff && matchedStaff.role !== "OWNER" && matchedStaff.role !== "MANAGER") {
       setError(true);
       setTimeout(() => setPin(""), 600);
       return;
     }
 
-    if (requiredRole && staff.role !== "OWNER" && staff.role !== "MANAGER") {
+    const success = await loginWithPin(enteredPin);
+    if (!success) {
       setError(true);
       setTimeout(() => setPin(""), 600);
       return;
     }
 
-    loginWithPin(enteredPin);
     setPin("");
     if (onSuccess) onSuccess();
     onClose();
@@ -112,7 +120,7 @@ export function PinModal({
 
         {error && (
           <p className="text-xs text-center text-brick font-medium mb-3">
-            Invalid PIN or insufficient permissions
+            Invalid PIN or insufficient role permissions
           </p>
         )}
 
@@ -147,25 +155,39 @@ export function PinModal({
           </button>
         </div>
 
-        {/* Demo Fast Staff Switches for 1-click testability */}
-        <div className="mt-5 pt-4 border-t border-cream-200 dark:border-espresso-700">
-          <p className="text-[11px] font-medium text-espresso-700/60 dark:text-cream-300/60 mb-2">
-            Quick demo staff switcher:
-          </p>
-          <div className="grid grid-cols-3 gap-1.5">
-            {SAMPLE_STAFF.map((staff) => (
-              <button
-                key={staff.id}
-                onClick={() => verifyPin(staff.pin)}
-                className="text-left px-2 py-1.5 rounded-lg bg-cream-100 dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 text-[11px] hover:border-vintage-orange transition-all flex items-center gap-1.5 truncate"
-                title={`PIN: ${staff.pin}`}
-              >
-                <span>{staff.avatar}</span>
-                <span className="truncate">{staff.name.split(" ")[0]}</span>
-              </button>
-            ))}
+        {/* Dynamic Registered Staff Account Switcher */}
+        {staffList.length > 0 && (
+          <div className="mt-5 pt-4 border-t border-cream-200 dark:border-espresso-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-espresso-700/70 dark:text-cream-300/70 flex items-center gap-1">
+                <Users className="w-3 h-3 text-vintage-orange" />
+                <span>Switch Staff Member:</span>
+              </span>
+              <span className="text-[10px] text-espresso-700/50">
+                {staffList.length} accounts
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 max-h-28 overflow-y-auto pr-1">
+              {staffList.map((staff) => (
+                <button
+                  key={staff.id}
+                  onClick={() => verifyPin(staff.pin)}
+                  className="text-left px-2.5 py-2 rounded-xl bg-white dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 text-[11px] hover:border-vintage-orange transition-all flex items-center gap-2 group shadow-sm"
+                >
+                  <span className="text-base flex-shrink-0">{staff.avatar || "👤"}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-espresso-900 dark:text-cream-100 truncate block text-[11px] leading-tight">
+                      {staff.name.split(" ")[0]}
+                    </span>
+                    <span className="text-[9px] font-semibold text-vintage-orange uppercase block -mt-0.5">
+                      {staff.role}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

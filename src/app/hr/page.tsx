@@ -27,7 +27,13 @@ import {
   UserCheck,
   CreditCard,
   Briefcase,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Edit2,
+  Trash2,
 } from "lucide-react";
+import { StaffAccountModal } from "@/components/hr/StaffAccountModal";
 
 export default function HrPage() {
   const [activeTab, setActiveTab] = useState<"CLOCK" | "STAFF" | "ROSTER" | "LEAVE">("CLOCK");
@@ -38,18 +44,16 @@ export default function HrPage() {
   const [clockPin, setClockPin] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // New Staff Modal State
-  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
-  const [newStaffName, setNewStaffName] = useState("");
-  const [newStaffRole, setNewStaffRole] = useState<StaffProfileDef["role"]>("BARISTA");
-  const [newStaffCnic, setNewStaffCnic] = useState("61101-1122334-5");
-  const [newStaffPhone, setNewStaffPhone] = useState("0300-1122334");
-  const [newStaffSalary, setNewStaffSalary] = useState(50000);
+  // Staff Account & PIN Management Modal State
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [selectedStaffForEdit, setSelectedStaffForEdit] = useState<any>(null);
+  const [revealedPins, setRevealedPins] = useState<Record<string, boolean>>({});
 
   const { playSound } = useUiStore();
-  const { currentUser } = useAuthStore();
+  const { currentUser, staffList, loadStaff, deleteStaff } = useAuthStore();
 
   const loadHrData = async () => {
+    await loadStaff();
     const profiles = await db.staffProfiles.toArray();
     const atts = await db.attendance.toArray();
     const shfs = await db.shiftSchedules.toArray();
@@ -58,6 +62,22 @@ export default function HrPage() {
     setAttendance(atts);
     setShifts(shfs);
     setLeaveRequests(lvs);
+  };
+
+  const toggleRevealPin = (id: string) => {
+    playSound("click");
+    setRevealedPins((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleDeleteStaffAccount = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the staff account for "${name}"?`)) return;
+    playSound("click");
+    const ok = await deleteStaff(id);
+    if (ok) {
+      await loadHrData();
+      setToastMsg(`Deleted account: ${name}`);
+      setTimeout(() => setToastMsg(null), 3000);
+    }
   };
 
   useEffect(() => {
@@ -104,32 +124,6 @@ export default function HrPage() {
     playSound("bell");
     await loadHrData();
     setTimeout(() => setToastMsg(null), 3500);
-  };
-
-  const handleAddStaff = async () => {
-    if (!newStaffName) return;
-    playSound("click");
-
-    const newStaff: StaffProfileDef = {
-      id: `sp-${Date.now()}`,
-      user_id: `user-${Date.now()}`,
-      name: newStaffName,
-      role: newStaffRole,
-      cnic: newStaffCnic,
-      phone: newStaffPhone,
-      email: `${newStaffName.toLowerCase().replace(" ", "")}@rewindcafe.pk`,
-      avatar: newStaffRole === "BARISTA" ? "☕" : newStaffRole === "KITCHEN" ? "👨‍🍳" : "🧑‍💻",
-      salary_type: "MONTHLY",
-      base_salary: newStaffSalary,
-      joining_date: new Date().toISOString().split("T")[0],
-      is_active: true,
-    };
-
-    await db.staffProfiles.add(newStaff);
-    await loadHrData();
-    setShowAddStaffModal(false);
-    setToastMsg(`Added staff profile: ${newStaff.name} (${newStaff.role})`);
-    setTimeout(() => setToastMsg(null), 3000);
   };
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -327,61 +321,127 @@ export default function HrPage() {
       {/* TAB 2: STAFF DIRECTORY & PROFILES */}
       {activeTab === "STAFF" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif font-bold text-lg">Café Staff & Payroll Profiles</h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-serif font-black text-lg text-espresso-900 dark:text-cream-100">
+                Staff Accounts, PINs & Roles
+              </h3>
+              <p className="text-xs text-espresso-700/60 dark:text-cream-300/60">
+                Manage café login credentials, 4-digit security PINs, access permissions & base salaries
+              </p>
+            </div>
             <button
-              onClick={() => setShowAddStaffModal(true)}
-              className="px-4 py-2 rounded-2xl bg-vintage-orange hover:bg-vintage-orange-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-md"
+              onClick={() => {
+                playSound("click");
+                setSelectedStaffForEdit(null);
+                setShowAccountModal(true);
+              }}
+              className="h-10 px-4 rounded-2xl bg-vintage-orange hover:bg-vintage-orange/90 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Staff Profile</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Create Staff Account</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {staffProfiles.map((staff) => (
-              <div
-                key={staff.id}
-                className="p-5 rounded-3xl bg-white dark:bg-espresso-800 border border-cream-200 dark:border-espresso-700 shadow-card flex flex-col justify-between space-y-3"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{staff.avatar}</span>
-                    <div>
-                      <h4 className="font-serif font-bold text-base text-espresso-900 dark:text-cream-100">
-                        {staff.name}
-                      </h4>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-cream-100 dark:bg-espresso-700 font-semibold text-vintage-orange">
-                        {staff.role}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {staffList.map((staff) => {
+              const profile = staffProfiles.find((p) => p.user_id === staff.id || p.name === staff.name);
+              const isRevealed = revealedPins[staff.id];
+
+              return (
+                <div
+                  key={staff.id}
+                  className="p-5 rounded-3xl bg-white dark:bg-espresso-850 border border-cream-200 dark:border-espresso-700 shadow-card flex flex-col justify-between space-y-4 hover:shadow-floating transition-all group"
+                >
+                  {/* Staff Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl p-1.5 rounded-2xl bg-cream-100 dark:bg-espresso-800">
+                        {staff.avatar || "👤"}
+                      </span>
+                      <div>
+                        <h4 className="font-serif font-black text-base text-espresso-900 dark:text-cream-100 leading-tight">
+                          {staff.name}
+                        </h4>
+                        <span className="text-[11px] font-bold text-vintage-orange uppercase tracking-wider block mt-0.5">
+                          {staff.role}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse mt-1" title="Active Account" />
+                  </div>
+
+                  {/* Terminal PIN Box */}
+                  <div className="p-3 rounded-2xl bg-cream-100/70 dark:bg-espresso-900 border border-cream-200 dark:border-espresso-700/80 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-vintage-orange" />
+                      <div>
+                        <span className="text-[10px] font-bold text-espresso-700/60 dark:text-cream-300/60 uppercase tracking-wider block leading-none">
+                          Terminal PIN
+                        </span>
+                        <span className="font-mono font-black text-sm tracking-widest text-espresso-900 dark:text-cream-100 block mt-0.5">
+                          {isRevealed ? staff.pin : "••••"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => toggleRevealPin(staff.id)}
+                      className="p-1.5 text-espresso-700/60 hover:text-espresso-900 dark:text-cream-300/60 dark:hover:text-cream-100 rounded-xl hover:bg-cream-200 dark:hover:bg-espresso-800 transition-colors"
+                      title={isRevealed ? "Hide PIN" : "Reveal PIN"}
+                    >
+                      {isRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {/* Details Card */}
+                  <div className="p-3 rounded-2xl bg-cream-50 dark:bg-espresso-900/60 text-xs space-y-1.5 border border-cream-200/50 dark:border-espresso-800">
+                    <div className="flex justify-between">
+                      <span className="text-espresso-700/60 dark:text-cream-300/60 font-medium">Email:</span>
+                      <span className="font-semibold truncate max-w-[170px]">{staff.email || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-espresso-700/60 dark:text-cream-300/60 font-medium">Phone:</span>
+                      <span className="font-semibold font-mono">{(staff as any).phone || profile?.phone || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-espresso-700/60 dark:text-cream-300/60 font-medium">Base Pay:</span>
+                      <span className="font-mono font-black text-vintage-orange">
+                        {formatCurrency(profile?.base_salary || (staff.role === "OWNER" ? 150000 : 55000))}
                       </span>
                     </div>
                   </div>
-                  <span className="w-2.5 h-2.5 rounded-full bg-sage" />
-                </div>
 
-                <div className="p-3 rounded-2xl bg-cream-50 dark:bg-espresso-900 text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-espresso-700/60">CNIC:</span>
-                    <span className="font-mono font-semibold">{staff.cnic}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-espresso-700/60">Phone:</span>
-                    <span className="font-semibold">{staff.phone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-espresso-700/60">Base Pay:</span>
-                    <span className="font-mono font-black text-vintage-orange">
-                      {formatCurrency(staff.base_salary)}
-                    </span>
-                  </div>
-                </div>
+                  {/* Action Buttons */}
+                  <div className="pt-2 border-t border-cream-200 dark:border-espresso-700 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => {
+                        playSound("click");
+                        setSelectedStaffForEdit({
+                          ...staff,
+                          phone: (staff as any).phone || profile?.phone,
+                          base_salary: profile?.base_salary,
+                        });
+                        setShowAccountModal(true);
+                      }}
+                      className="flex-1 h-9 rounded-xl bg-cream-100 dark:bg-espresso-800 hover:bg-cream-200 dark:hover:bg-espresso-700 text-espresso-800 dark:text-cream-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border border-cream-300 dark:border-espresso-700"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-vintage-orange" />
+                      <span>Edit Account & PIN</span>
+                    </button>
 
-                <div className="text-[11px] text-espresso-700/60 pt-1 border-t border-cream-100 flex justify-between">
-                  <span>Joined: {formatDate(staff.joining_date)}</span>
-                  <span>{staff.salary_type}</span>
+                    <button
+                      onClick={() => handleDeleteStaffAccount(staff.id, staff.name)}
+                      className="p-2 rounded-xl text-espresso-700 hover:text-brick hover:bg-brick/10 border border-cream-200 dark:border-espresso-700 transition-colors"
+                      title="Delete account"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -437,87 +497,20 @@ export default function HrPage() {
         </div>
       )}
 
-      {/* Add Staff Modal */}
-      {showAddStaffModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso-950/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-sm bg-cream-50 dark:bg-surface-dark border border-cream-200 rounded-café p-6 shadow-floating space-y-4">
-            <h3 className="font-serif font-bold text-lg">Add Staff Member</h3>
-
-            <div>
-              <label className="text-xs font-bold block mb-1">Full Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Tariq Mehmood"
-                value={newStaffName}
-                onChange={(e) => setNewStaffName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-cream-300 text-xs font-bold"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs font-bold block mb-1">Role</label>
-                <select
-                  value={newStaffRole}
-                  onChange={(e) => setNewStaffRole(e.target.value as any)}
-                  className="w-full px-2 py-2 rounded-xl bg-white border border-cream-300 text-xs font-bold"
-                >
-                  <option value="BARISTA">Barista</option>
-                  <option value="CASHIER">Cashier</option>
-                  <option value="KITCHEN">Kitchen Chef</option>
-                  <option value="WAITER">Waiter</option>
-                  <option value="MANAGER">Manager</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold block mb-1">Base Salary (PKR)</label>
-                <input
-                  type="number"
-                  value={newStaffSalary}
-                  onChange={(e) => setNewStaffSalary(parseFloat(e.target.value) || 0)}
-                  className="w-full px-2 py-2 rounded-xl bg-white border border-cream-300 text-xs font-bold"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold block mb-1">CNIC Number</label>
-              <input
-                type="text"
-                value={newStaffCnic}
-                onChange={(e) => setNewStaffCnic(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-cream-300 text-xs font-mono"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold block mb-1">Phone Number</label>
-              <input
-                type="text"
-                value={newStaffPhone}
-                onChange={(e) => setNewStaffPhone(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-cream-300 text-xs"
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowAddStaffModal(false)}
-                className="flex-1 py-2 rounded-xl bg-cream-200 text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddStaff}
-                className="flex-1 py-2 rounded-xl bg-vintage-orange text-white text-xs font-bold shadow-md"
-              >
-                Save Profile
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Staff Account & Security PIN Modal */}
+      <StaffAccountModal
+        isOpen={showAccountModal}
+        staff={selectedStaffForEdit}
+        onClose={() => {
+          setShowAccountModal(false);
+          setSelectedStaffForEdit(null);
+        }}
+        onSaved={async () => {
+          await loadHrData();
+          setToastMsg("Staff account & credentials updated successfully");
+          setTimeout(() => setToastMsg(null), 3000);
+        }}
+      />
     </div>
   );
 }
