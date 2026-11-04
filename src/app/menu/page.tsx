@@ -175,6 +175,7 @@ export default function MenuManagementPage() {
         id: generateUUID(),
         event_type: "MENU_ITEM_DELETED",
         payload: { id: item.id },
+        retry_count: 0,
         status: "PENDING",
         created_at: new Date().toISOString(),
       });

@@ -168,7 +168,7 @@ export interface LocalStockMovement {
 
 export interface OutboxRecord {
   id: string;
-  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED" | "PAYROLL_POSTED" | "FEEDBACK_SUBMITTED";
+  event_type: "ORDER_CREATED" | "ORDER_PAID" | "ORDER_VOIDED" | "CASH_MOVEMENT" | "KDS_BUMP" | "STOCK_COUNT" | "CLOCK_IN" | "PO_CREATED" | "GRN_RECEIVED" | "EXPENSE_LOGGED" | "PAYROLL_POSTED" | "FEEDBACK_SUBMITTED" | "MENU_ITEM_CREATED" | "MENU_ITEM_UPDATED" | "MENU_ITEM_DELETED";
   payload: any;
   retry_count: number;
   created_at: string;

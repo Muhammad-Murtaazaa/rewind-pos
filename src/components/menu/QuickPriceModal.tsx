@@ -57,6 +57,7 @@ export function QuickPriceModal({ item, onClose, onSaved }: QuickPriceModalProps
         id: generateUUID(),
         event_type: "MENU_ITEM_UPDATED",
         payload: updated,
+        retry_count: 0,
         status: "PENDING",
         created_at: new Date().toISOString(),
       });

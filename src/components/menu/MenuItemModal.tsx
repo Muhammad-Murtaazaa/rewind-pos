@@ -180,6 +180,7 @@ export function MenuItemModal({
         id: generateUUID(),
         event_type: item ? "MENU_ITEM_UPDATED" : "MENU_ITEM_CREATED",
         payload: savedItem,
+        retry_count: 0,
         status: "PENDING",
         created_at: new Date().toISOString(),
       });
